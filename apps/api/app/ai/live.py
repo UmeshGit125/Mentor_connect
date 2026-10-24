@@ -229,7 +229,27 @@ class LiveIntakeAnalyzer(_LiveBase):
             tools=_strings(data.get("tools")),
             wants_ai=wants_ai,
         )
-        return IntakeResult("ok", need)
+        return IntakeResult("ok", self._with_summary_tags(need, vocab))
+
+    def _with_summary_tags(self, need: Need, vocab: Vocabulary) -> Need:
+        """Adds tags the model's own summary names. The model sometimes writes "marketing" in its
+        summary yet leaves the tag out, and a missing tag hides the right mentors. Reading its
+        one line summary, not the student's whole message, keeps stray words from adding tags.
+        Tags still come only from the mentor table."""
+        named = self.fallback.analyze([need.summary], vocab)
+        if named.verdict != "ok" or named.need is None:
+            return need
+
+        def merged(model: list[str], words: list[str]) -> list[str]:
+            return [*model, *(w for w in words if w not in model)]
+
+        return Need(
+            summary=need.summary,
+            domains=merged(need.domains, named.need.domains),
+            sectors=merged(need.sectors, named.need.sectors),
+            tools=merged(need.tools, named.need.tools),
+            wants_ai=need.wants_ai or named.need.wants_ai,
+        )
 
 
 EXPLAIN_SCHEMA = {

@@ -102,7 +102,8 @@ def test_invented_mentor_id_is_dropped(live_api, sid, fake_ai, mentors_by_id):
     reply = run_with_explain(live_api, sid, fake_ai, build)
     assert reply["kind"] == "matches"
     ids = [m["mentor"]["id"] for m in reply["matches"]]
-    assert "M999" not in ids and len(ids) == 1
+    # The invented id never shows. The real mentors are still shown, in score order.
+    assert "M999" not in ids and all(i in mentors_by_id for i in ids) and ids
 
 
 def test_reason_citing_blank_field_drops_the_match(live_api, sid, fake_ai, mentors_by_id):
@@ -135,9 +136,12 @@ def test_reason_with_changed_value_is_dropped(live_api, sid, fake_ai, mentors_by
     assert all(not r["value"].endswith(" Plus") for m in reply["matches"] for r in m["reasons"])
 
 
-def test_model_returning_no_matches_gives_no_match(live_api, sid, fake_ai):
+def test_model_returning_no_matches_still_shows_the_top_candidates(live_api, sid, fake_ai, mentors_by_id):
+    """The model cannot hide mentors the scoring found. Their reasons then come from the rules."""
     reply = run_with_explain(live_api, sid, fake_ai, lambda ids: explain_answer())
-    assert reply["kind"] == "no_match" and reply["matches"] == []
+    assert reply["kind"] == "matches" and 1 <= len(reply["matches"]) <= 3
+    for m in reply["matches"]:
+        assert m["mentor"] == mentors_by_id[m["mentor"]["id"]]
 
 
 def test_all_invalid_output_never_shows_invented_data(live_api, sid, fake_ai, mentors_by_id):

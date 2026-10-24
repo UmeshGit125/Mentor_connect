@@ -26,7 +26,9 @@ def _cites_row(mentor: PublicMentor, reason: Reason) -> bool:
     return reason.value == str(stored)
 
 
-def verify_matches(raw: list[Match], candidates: list[PublicMentor]) -> list[Match]:
+def verify_matches(
+    raw: list[Match], candidates: list[PublicMentor], limit: int = MAX_MATCHES
+) -> list[Match]:
     """Keeps only explainer output that is backed by the candidate rows.
 
     A match is dropped if its mentor is not a candidate, or if any reason cites a null field or a
@@ -46,4 +48,4 @@ def verify_matches(raw: list[Match], candidates: list[PublicMentor]) -> list[Mat
             continue
         seen.add(row.id)
         verified.append(Match(mentor=row, reasons=reasons))
-    return verified[:MAX_MATCHES]
+    return verified[:limit]

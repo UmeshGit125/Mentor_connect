@@ -14,6 +14,7 @@ from app.matching.retrieve import find_overlaps, top_candidates
 from app.matching.verify import verify_matches
 from app.matching.vocabulary import build_vocabulary
 from app.schemas import Match, Need, PublicMentor, Reason, Tools
+from app.services.chat import final_matches
 
 
 def mentor(id, domain="Marketing", sector=None, **kw):
@@ -198,3 +199,74 @@ def test_chat_sde_after_ai_and_saas_does_not_reuse_the_ai_mentors(client):
     assert first["kind"] == "matches"
     reply = chat(client, sid, "I want to learn the SDE role, assign me a mentor for that, not for the AI", first["session_id"]).json()
     assert reply["kind"] == "no_match" and reply["matches"] == []
+
+
+# The code, not the model, decides who is shown.
+
+class _Explainer:
+    def __init__(self, picks):
+        self.picks = picks
+
+    def explain(self, need, candidates):
+        rows = {m.id: m for m in candidates}
+        return [
+            Match(mentor=rows[i], reasons=[Reason(field="domain", value=rows[i].domain, text="Their main area.")])
+            for i in self.picks
+        ]
+
+
+class _Ai:
+    def __init__(self, picks):
+        self.explainer = _Explainer(picks)
+
+
+def test_a_model_that_leaves_out_the_best_mentor_cannot_hide_them():
+    best = mentor("M99", domain="Data")
+    others = [mentor(f"M{i}", domain="Product Management", tools=Tools(tableau=True, excel=True)) for i in range(1, 6)]
+    need = Need(summary="x", domains=["Data"], tools=["Tableau", "Excel"])
+    cands = [c.mentor for c in top_candidates([*others, best], need)]
+    shown = final_matches(_Ai(["M1"]), need, cands)  # the model names only M1
+    assert shown[0].mentor.id == "M99"
+    assert len(shown) == 3
+
+
+def test_model_reasons_are_used_when_they_verify_and_rules_fill_the_rest():
+    ms = [mentor(f"M{i}", domain="Marketing") for i in range(1, 5)]
+    need = Need(summary="x", domains=["Marketing"])
+    cands = [c.mentor for c in top_candidates(ms, need)]
+    shown = final_matches(_Ai(["M2"]), need, cands)
+    assert [m.mentor.id for m in shown] == ["M1", "M2", "M3"]  # score order, not the model's order
+    assert next(m for m in shown if m.mentor.id == "M2").reasons[0].text == "Their main area."
+
+
+# The live model sometimes writes "marketing" in its summary but leaves the tag empty.
+
+class _StubClient:
+    def __init__(self, answer):
+        import json
+        from types import SimpleNamespace
+
+        text = json.dumps(answer)
+        reply = SimpleNamespace(stop_reason="end_turn", content=[SimpleNamespace(type="text", text=text)])
+        self.messages = SimpleNamespace(create=lambda **kw: reply)
+
+
+def _intake(summary, **tags):
+    return {"verdict": "career_problem", "sensitive_topic": "none", "summary": summary, "domains": [],
+            "sectors": [], "tools": [], "wants_ai": False, "question": "", **tags}
+
+
+def test_a_tag_named_in_the_models_summary_is_not_lost():
+    from app.ai.live import LiveIntakeAnalyzer
+
+    answer = _intake("The student wants to get into marketing at a SaaS company.", sectors=["SaaS"])
+    result = LiveIntakeAnalyzer(client=_StubClient(answer)).analyze(["i wnat to get into markting at a saas compnay"])
+    assert result.need.domains == ["Marketing"] and result.need.sectors == ["SaaS"]
+
+
+def test_a_summary_that_names_nothing_adds_nothing():
+    from app.ai.live import LiveIntakeAnalyzer
+
+    answer = _intake("The student wants to become an underwater welder on oil rigs.")
+    result = LiveIntakeAnalyzer(client=_StubClient(answer)).analyze(["I want to be an underwater welder, I used to do marketing"])
+    assert result.need.domains == [] and result.need.sectors == []

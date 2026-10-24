@@ -1,13 +1,14 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.ai.fake import FakeMatchExplainer
 from app.deps import AiServices
 from app.errors import not_found
 from app.matching.retrieve import top_candidates
-from app.matching.verify import verify_matches
+from app.matching.verify import MAX_MATCHES, verify_matches
 from app.matching.vocabulary import build_vocabulary
 from app.models import ChatSession, Mentor, Message, Student
-from app.schemas import ChatHistory, ChatMessage, ChatReply, Need, PublicMentor
+from app.schemas import ChatHistory, ChatMessage, ChatReply, Match, Need, PublicMentor
 
 MAX_CLARIFY_TURNS = 3
 
@@ -56,6 +57,18 @@ def _public_mentors(db: Session) -> list[PublicMentor]:
     return [PublicMentor.model_validate(m) for m in rows]
 
 
+def final_matches(ai: AiServices, need: Need, candidates: list[PublicMentor]) -> list[Match]:
+    """The mentors shown are the top candidates by score, in score order. The model only writes
+    the reasons. When its reasons for a mentor fail verification, or it leaves a mentor out, the
+    reasons come from the overlap rules instead, so a model cannot hide the right mentor."""
+    asked = ai.explainer.explain(need, candidates)
+    from_model = {m.mentor.id: m for m in verify_matches(asked, candidates)}
+    rules = FakeMatchExplainer().explain(need, candidates)
+    from_rules = {m.mentor.id: m for m in verify_matches(rules, candidates, len(candidates))}
+    chosen = (from_model.get(c.id) or from_rules.get(c.id) for c in candidates)
+    return [m for m in chosen if m is not None][:MAX_MATCHES]
+
+
 def _session_for(db: Session, student: Student, session_id: str | None) -> ChatSession:
     if session_id is None:
         session = ChatSession(student_id=student.id)
@@ -91,9 +104,7 @@ def _decide(db: Session, ai: AiServices, session: ChatSession, texts: list[str])
 
     need = result.need or Need(summary=texts[-1][:140])
     candidates = [c.mentor for c in top_candidates(mentors, need)]
-    matches = (
-        verify_matches(ai.explainer.explain(need, candidates), candidates) if candidates else []
-    )
+    matches = final_matches(ai, need, candidates) if candidates else []
     if not matches:
         return reply("no_match", NO_MATCH_MESSAGE, need=need)
     session.ever_matched = True
