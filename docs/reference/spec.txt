@@ -1,0 +1,592 @@
+DESIGN SYSTEM  /  UX INVENTORY  /  API BLUEPRINT
+Connect MentorWebsite Replication Specification
+Page-by-page design breakdown • behavior map • frontend tokens • proposed backend contracts
+Source: user-provided 51.44-second desktop screen recording (3024 × 1964 px, 24 October 2026).
+Reference site: https://connectmentor.in/mentorship/
+ [IMG ['rId11']]
+01 / Home hero and shared desktop navigation observed in the recording.
+Evidence policy  OBSERVED means directly visible in the recording. ESTIMATED means visually measured or inferred. PROPOSED means a practical implementation contract, not a claim about the original site.
+Executive overview
+This document is a build-ready functional and visual reference for recreating the demonstrated desktop experience. It inventories the observed pages, reusable UI, layout decisions, interaction flows and content structures, then supplies an explicit proposed architecture and API design.
+Covered in video
+Not demonstrated / requires validation
+Home: hero, workflow, categories, feature tiles, highlighted mentors, footer
+Live Sign In / Get Started screens and authentication form flows
+Mentors: filter bar, multi-card directory, lower rows
+Individual mentor profile interaction, booking and message submission
+Sessions: linked session list/table
+Session detail, enrollment or booking confirmation
+Blogs: search input, post cards
+Search result behavior, post detail page
+Jobs: anonymous-access login gate
+Authenticated job feed and application
+FAQs, Contact, Pages dropdown, footer
+FAQ expansion result, contact submission result, legal page bodies
+Primary navigation map
+Label
+Observed path
+What the visitor sees
+Home
+/mentorship/ (root also seen)
+Landing page with multiple sections
+Mentors
+/mentorship/mentors
+Directory grid and filters
+Sessions
+/mentorship/home/mentors_link
+Public sessions table
+Blogs
+/mentorship/blogs
+Blog &amp; News cards
+Jobs
+/mentorship/home/jobs
+Please login to view job post.
+FAQs
+/mentorship/faqs
+Three collapsed questions
+Contact
+/mentorship/contact
+Contact form
+Pages ▾
+dropdown; links not opened
+Terms and Condition, Privacy Policy
+Sign In / Get Started
+not opened in recording
+Header auth CTAs
+The recorded browser viewport is desktop only. All mobile and tablet specs later in the document are recommendations and need real-device validation.
+01 · Design foundations
+Visual identity and color palette
+The site uses a bright emerald-green brand accent over a white foundation, charcoal headings, restrained grey supporting text, light grey panels, thin borders and very subtle shadows. Hex values below are visually sampled/approximated from screen pixels; the actual source CSS was not available.
+Swatch
+Token / HEX
+Usage
+Status
+Primary green#0DBB7C
+Buttons, active links, badges, icons
+ESTIMATED
+Bright highlight#17CE85
+Illustrations, logo gradient/highlights
+ESTIMATED
+Primary ink#272C32
+Headings and high-emphasis text
+ESTIMATED
+Secondary ink#636B75
+Body support text, metadata
+ESTIMATED
+Canvas white#FFFFFF
+Global background, cards
+ESTIMATED
+Muted canvas#F7F8F8
+Category section background
+ESTIMATED
+Border#E4E9E8
+Input outlines, dividers, cards
+ESTIMATED
+Soft mint#E9F9F2
+Highlights, verification/badges
+ESTIMATED
+Alert red#D90016
+Anonymous Jobs restriction
+ESTIMATED
+Typography / type scale
+Usage
+Suggested font
+Desktop approximation
+Notes
+Primary typeface
+Poppins, sans-serif
+Regular 400 / Medium 500 / SemiBold 600 / Bold 700
+Strong visual match; verify computed font-family
+Hero heading
+Poppins 700
+52–58 px, 1.13 line-height
+3 lines, left aligned
+Section heading
+Poppins 700
+32–38 px, 1.2 line-height
+Often centered
+Card heading
+Poppins 600
+17–20 px, 1.3 line-height
+Mentor name and category title
+Body copy
+Poppins 400
+14–16 px, 1.5–1.7 line-height
+Muted grey
+Nav and buttons
+Poppins 500–600
+13–15 px
+Active nav uses brand green
+Input labels/meta
+Poppins 500
+12–14 px
+Light placeholders
+Grid, spacing, surfaces
+Element
+Desktop recommendation
+Responsive adaptation
+Content container
+max-width 1170–1200px, width calc(100% − 48px)
+24px gutters on mobile
+Header
+logo left, links centered, CTAs right; ~110–125px zone
+hamburger/menu + stacked or sheet nav
+Layout grid
+12 columns / 24–32px gaps
+4 columns tablet, 1–2 cards mobile
+Primary section padding
+72–112px vertical
+44–64px mobile
+Card corner radius
+4–8px on cards; pill search on blogs
+retain same radius
+Shadow
+soft: 0 10px 35px rgba(20,35,51,.04)
+keep low contrast
+Fields and buttons
+42–52px height; 1px border
+44px minimum tap target
+Reusable brand tokens — starting CSS
+/* Reproduction starter tokens — estimated, not extracted CSS */
+:root {
+  --brand-500: #0DBB7C; --brand-bright: #17CE85;
+  --text-strong: #272C32; --text-muted: #636B75;
+  --surface: #FFFFFF; --surface-muted: #F7F8F8;
+  --border: #E4E9E8; --mint: #E9F9F2;
+  --alert: #D90016; --radius-card: 6px;
+  --container: 1180px;
+  --shadow-card: 0 10px 35px rgba(20,35,51,.04);
+  --font-ui: 'Poppins', Arial, sans-serif;
+}
+02 · Shared UI anatomy
+ [IMG ['rId11']]
+Shared site header + hero. Browser chrome is not part of the website.
+Header structure.  A horizontally centered maximum-width container contains a grey/green Connect Mentor logo at left, navigation links in the middle, then a bordered Sign In button and solid green Get Started button to the right. Current-page link text changes to green.
+Desktop navigation.  Home → Mentors → Sessions → Blogs → Jobs → FAQs → Contact → Pages dropdown. Pages opens a small white popover with Terms and Condition and Privacy Policy links; mouse hover behavior is visible around 37–38 s.
+Footer.  Three main areas: brand logo + one-line mission + four square outlined social icons; Services list (Mentors, Blogs, FAQs, Sessions, Contact); Pages list (Terms and Condition, Privacy Policy). Copyright strip below: “© 2024 All rights reserved.”
+ [IMG ['rId12']]
+Home footer and featured mentor card structure, visible ~14–15 s.
+Floating controls.  A right-edge stack of circular dark icons plus small purple/colored floating widgets appears across multiple pages. The recording alone cannot establish which belong to site scripts vs browser extensions. Do not implement them until origin and expected behavior are confirmed.
+Global component inventory
+Component
+Props / behavior
+Used on
+SiteHeader
+activeRoute; navigation; legal menu; auth CTAs
+Every recorded route
+SiteFooter
+brand, link groups, social links, copyright
+Home and internal pages
+PrimaryButton / GhostButton
+label, loading, disabled, size, onClick
+Hero, auth, Search, Contact
+SelectFilter
+label, options, selected, clear/reset
+Hero &amp; Mentors
+SearchField
+query, onChange, search icon, submit
+Hero, Mentors, Blogs
+CategoryCard
+icon, name, mentor count, link
+Home category section
+MentorCard
+photo, name, country, title, badge, years, attendance
+Home carousel and Mentors
+BlogCard
+cover image, date, title, Read More link
+Blogs
+FAQItem
+question, answer, expanded
+FAQs
+ContactForm
+name, email, message, validation and feedback
+Contact
+03 · Page-by-page design breakdown
+Page 1 / Home — hero and discovery
+ [IMG ['rId11']]
+Home hero, ~00–06 s; two hero tabs and integrated search module.
+Hierarchy.  Small role switch “Mentee | Mentor” at top of hero (Mentee active with green underline), oversized three-line title “Empowering Communities Through Mentorship”, an introductory paragraph, and a wide embedded search bar. The right half is mostly airy white space, with subdued geometric background artwork and floating avatar images.
+Search module.  Search-by-mentor/language/free text; Categories dropdown; Country dropdown; prominent green SEARCH CTA. Inputs are arranged horizontally with light vertical separators and soft outer shadow.
+Observable interaction.  The role switch and search fields are visible but not actively submitted in the footage. To replicate expected behavior, tab choice should switch the hero copy/CTA or audience view; submit should navigate to Mentors with URL-encoded filters. These outcomes are PROPOSED.
+Hero design spec.  H1 roughly 52–58px desktop; explanatory paragraph 15–16px; left content column about 540px; search bar width about 950–1000px; green active indicator, subtle patterned background. Keep visual whitespace intentionally large.
+Page 1 / Home — workflow strip
+ [IMG ['rId13']]
+Three-step onboarding cards, ~07–09 s.
+Composition.  Centered “Workflow” eyebrow, two-line heading, three evenly spaced feature cards. Icons are mint/green stylized people and actions. Middle card has subtle raised/shadowed emphasis (possibly hover).
+Card copy.  Create Account → Complete your profile → Connect Mentors. Each uses centered icon, bold title, two-line support text. These are informational blocks, not proof that onboarding transitions were exercised.
+Page 1 / Home — category browser
+ [IMG ['rId14']]
+Category grid, ~09–11 s; four columns of tiles.
+Section background.  Very light grey. Centered “Categories” eyebrow and heading “Browse Mentors by Categories”. Grid of 12 cards in four columns × three rows on desktop, each featuring a tiny thin-line green icon, category title and live mentor count.
+Observed categories.  Software Engineering (6), Marketing (1), Product Management (1), Design (0), Data Science (1), Content Writing (3), Leadership (1), Management (3), Startup (0), Career (9), Cloud Technology (0), CRM and ERP (0). Counts are snapshots, not constants.
+Behavior to build.  Category tile navigates to a filtered mentor directory (PROPOSED, not clicked). Zero-count categories can remain selectable, displaying an empty state rather than disappearing.
+Page 1 / Home — feature grid, highlighted mentors
+ [IMG ['rId15']]
+Feature tiles, ~11–13 s; icon + heading + explanatory text.
+Feature grid.  Outlined white cards, approximately three columns. First row: Profile Creation; Search and Filter; Messaging System. Further cards follow in page content: Video Sessions; Feedback and Ratings; Reports; Privacy and Security. Some are not fully visible in a single frame; copy is cross-checked against the public home page.
+Highlighted mentor strip.  Section header “Discover the world’s top mentors” and an apparent right/left carousel control. Four mentor cards are simultaneously visible on desktop, with image, verified badge, country flag, name, profession, experience years and “Attendence” percentage.
+Assets.  Reuse a logo asset, category icons/line SVGs, illustration icons, mentor profile photos and country flags. In absence of source assets, replace with consistent vector equivalents; do not use random stock people for identifiable mentor profiles.
+Page 2 / Mentors directory
+ [IMG ['rId16']]
+Mentors directory at ~19–20 s, four-column card grid.
+Route.  /mentorship/mentors
+Page framing.  Top nav remains consistent. Small left-aligned “Mentors” heading, then compact single-row filter controls immediately above the card grid. Plenty of space between rows; clean thin outlines.
+Filter controls.  Text Search | Categories | All (an additional unspecified filter; likely role/language) | Experience | Countries | outlined green Search button. The label “All” does not prove the underlying dimension; verify its option list in a real browser.
+Cards.  Four columns at desktop. Large square-ish mentor photo with small overlapping mint “verified” pill bottom-right; mentor name and country flag; job/title; two-column bottom metadata (Experience and Attendence). Cards are variable-height when biographies are longer.
+Scrolled content.  More mentor cards appear in the second and third rows; directory does not end with the first four. Some cards have missing images, requiring graceful placeholders.
+Recommended mechanics.  Keep filters in component state; execute on Search or Enter; preserve query in URL; apply pagination/load-more when needed; show skeleton/loading state, error, and “No mentors found” state. Clicking a card should open its profile detail route (proposed; not clicked in video).
+State
+Visual / UX response
+Requirement level
+Initial
+Populate first mentor page with cards and default filters
+Observed layout
+Filter changed
+Show selected dropdown value without rerender jump
+Proposed interaction
+Searching
+Disable duplicate submit; show lightweight progress
+Proposed interaction
+Empty result
+Friendly empty state + “Clear filters”
+Proposed interaction
+No photo
+Neutral initials avatar at exact same image dimensions
+Proposed interaction
+Card action
+Navigate to /mentorship/mentor/:slug
+Public detail path exists, not filmed
+Page 3 / Sessions table
+ [IMG ['rId17']]
+Sessions listing at ~24–30 s. Table screenshot.
+Route.  /mentorship/home/mentors_link
+Structure.  Header “Mentor link for sessions”, then a border-light table with six columns: #, Mentor, Session Name, Session Topic, Type, Duration. Session names are green links. Large row height handles wrapped content.
+Data content.  Two rows show recurring courses with a session count and monthly repeat note; two rows show one-time sessions. Durations are 30 or 60 Minutes. Example topics: Back-end, AI/ML Engineering, Technical Product Management, Career Development.
+Behavior.  Clicking a linked session should open an appropriate session or mentor booking route; destination not observed. Use accessible responsive overflow for the wide table on mobile.
+Page 4 / Blogs &amp; News
+ [IMG ['rId18']]
+Blog index at ~31–33 s; large search and three article tiles.
+Route.  /mentorship/blogs
+Layout.  Centered “Blog &amp; News” title, subtitle “Learn More &amp; Empower Yourself”, wide pill-shaped search field with search icon on right; a three-column post grid with 16:9-ish rounded cover photos, date, bold headline and “Read More →”.
+Observed posts.  “Redefining Retirement”; Hindi headline about artificial intelligence and employment preparation; “The job market demand for programming languages in India”. Dates displayed 17 Oct 2024. These are content examples, not hard-coded page requirements.
+Behavior.  The search field is present but not exercised; implement client- or server-side keyword matching over post title/summary, debounce optional, explicit empty state. “Read More” should link to article routes.
+Page 5 / Jobs — anonymous visitor gate
+ [IMG ['rId19']]
+Jobs page at ~33–35 s; red authentication gate and footer.
+Route.  /mentorship/home/jobs
+Layout.  Near-empty page body with a large centered red message: “Please login to view job post.” Footer begins directly underneath the restriction zone.
+Critical rule.  On the filmed anonymous visit, jobs are not shown. Replicate this guest state. Backend must separately authorize access; hiding job cards in the UI does not secure data.
+Suggested authenticated state.  After login, show job feed with job title/company/location/tags and view/apply controls. This state is NOT present in footage.
+Page 6 / FAQs
+ [IMG ['rId20']]
+FAQs page at ~35–37 s with three closed accordion rows.
+Route.  /mentorship/faqs
+Layout.  Centered “Frequently Asked Questions” title; narrow centered stack of three wide white accordion tiles. Each row has bold left-aligned question, mint circular plus icon at the right, subtle border/shadow, and generous vertical separation.
+Questions.  What is ConnectMentor? / How does ConnectMentor work? / Can I get a demo of the product?
+Interaction.  No row opened in video. Implement semantic button controls with aria-expanded, keyboard accessibility, plus-to-minus icon, smooth expand, and answer region. Whether multiple entries can remain open is unverified; single-open is a reasonable first-pass.
+Page 7 / Contact — enquiry form
+ [IMG ['rId21']]
+Contact page at ~37–40 s; Pages dropdown is expanded.
+Route.  /mentorship/contact
+Layout.  Centered “Get In Touch” title above a centered form ~600–650px CSS width. Name and email inputs occupy two equal columns; Message is a full-width multiline textarea; compact neutral outline Submit button is left aligned under message. Footer below the form.
+Visible text.  Labels “Your full name”, “Your email”, “Message”, textarea placeholder “Write more details”, button “Submit”.
+Validation / UX to implement.  Required name, valid email, required message, clear field errors, form submission spinner, one success or failure notice. Submit action not demonstrated, so endpoint/response is PROPOSED.
+Pages dropdown.  Hovered/open at ~37–38 s. Two rows: “Terms and Condition”, “Privacy Policy”. White floating menu with soft shadow, aligned under Pages nav link.
+Legal, registration and deeper screens — scope boundary
+The video shows links to legal pages, Sign In, Get Started, individual mentor profiles, and session/article details, but does not enter them. Do not reproduce imagined layouts as if they were observed. Related public mentor profile pages exist and expose biographies, skill tags, experience, session listings, reviews and a message form, but those are additional routes outside the recorded navigation. Before an exact full-site clone, capture each of these in a second pass.
+Missing screens to scope separately.  Sign In (credentials/recovery); Get Started (role, registration, verification); Mentor profile (bio, expertise, languages, reviews, message); Session detail/booking (date, availability, confirmation); Blog detail (full article); Terms/Privacy (legal content). These are linked or publicly discoverable but not visually explored in the recording.
+04 · Interaction and behavior contract
+Recorded versus inferred behavior matrix
+User action
+Result to implement
+Evidence
+Click main nav links
+Route changes, active text turns green, content changes
+Observed
+Hover Pages
+Dropdown overlays page with two legal links
+Observed
+Scroll Home
+Workflow → Categories → Features → Top mentors → Footer
+Observed
+Scroll Mentors
+Further mentor cards are revealed
+Observed
+Open Jobs while logged out
+Large red login-required message
+Observed
+Submit hero search
+Open filtered Mentors directory; keep URL state
+Proposed
+Change mentor filters + Search
+Request matching mentors and update grid
+Proposed
+Search blogs
+Filter blog list by text query
+Proposed
+Open FAQ question
+Expand answer panel and update icon
+Proposed
+Submit contact form
+Validate, POST enquiry, present status
+Proposed
+Select mentor / session
+Open detail/profile / booking flow
+Proposed
+Navigation and state rules
+Use real URLs / route components, not a single page that swaps hidden sections. Direct-refresh on every observed route must work.
+Keep active navigation matched to route; active state uses green text. Logo and Home return to landing.
+Close Pages dropdown on Escape, outside click, route change, and keyboard tab-away; hover is optional on touch devices.
+Do not store login tokens in localStorage; use secure HTTP-only cookies where possible. Gate private APIs with server authorization.
+Support keyboard input on search fields, selectors, tabs, accordions, nav links and cards.
+Use stable loading, empty, invalid-input, network-error, authenticated and anonymous states.
+Motion / interaction visual cues
+Component
+Suggested motion
+Accessibility caveat
+Nav link
+120–180ms color fade to green
+Keep active indication visible without hover
+Mentor/category card
+2–4px gentle translate + subtle shadow
+Honor prefers-reduced-motion
+FAQ answer
+180–240ms expansion
+Do not rely on height transition for focus
+Dropdown
+Opacity + 6px translate, 150ms
+Clickable and keyboard navigable
+Submit
+Spinner and disabled duplicate action
+Announce success/failure via status live region
+05 · Data model and API plan
+Implementation boundary  The recording does not expose the live service API, database, framework, request schema, authentication design, or third-party providers. Everything in this section is a PROPOSED replacement API for a working replica; not reverse-engineered private endpoints.
+Frontend / backend stack
+Frontend.  Next.js + TypeScript, Tailwind CSS (or CSS Modules), React Hook Form + Zod, TanStack Query, Lucide icons, responsive image optimization. Alternative: Vite + React Router for purely client-rendered replica.
+Backend.  FastAPI + Pydantic + SQLAlchemy + PostgreSQL. JWT session/cookie strategy or server sessions, object storage (S3-compatible) for mentor/blog media, SMTP/provider for contact and verification email.
+Infrastructure.  Deploy frontend to Vercel or another CDN; backend to managed container/app host; PostgreSQL managed database; HTTPS everywhere; CDN-cached media; logging and basic error monitoring.
+Suggested API endpoints
+Method / endpoint
+Data / purpose
+Access
+GET /api/v1/categories
+Category list with mentor counts
+Public
+GET /api/v1/mentors
+Query, category, country, experience, page, limit
+Public
+GET /api/v1/mentors/{slug}
+Mentor profile including public details
+Public
+GET /api/v1/sessions
+Session rows; mentor/topic/type/duration
+Public
+GET /api/v1/sessions/{id}
+Session details, availability, booking info
+Public
+GET /api/v1/posts
+Blog index by search/page/limit
+Public
+GET /api/v1/posts/{slug}
+Article detail
+Public
+GET /api/v1/faqs
+FAQ question/answer ordering
+Public
+POST /api/v1/contact
+Create enquiry; spam/rate controls
+Public
+POST /api/v1/auth/register
+Register user by role
+Public
+POST /api/v1/auth/login
+Authenticate and start session
+Public
+POST /api/v1/auth/logout
+Revoke session
+Authenticated
+GET /api/v1/me
+Current account and role
+Authenticated
+GET /api/v1/jobs
+Authenticated job listing
+Authenticated
+POST /api/v1/mentor-messages
+Message selected mentor
+Authenticated
+POST /api/v1/bookings
+Reserve session
+Authenticated
+Mentor search — sample request and response
+GET /api/v1/mentors?query=python&amp;category=data-science&amp;country=IN&amp;page=1&amp;limit=12
+200 OK
+{
+  "items": [{
+    "id": "mentor_101", "slug": "example-mentor",
+    "full_name": "Example Mentor", "photo_url": "/media/mentor_101.jpg",
+    "country_code": "IN", "headline": "Data Science Mentor",
+    "verified": true, "experience_years": 8,
+    "attendance_percent": 95, "categories": ["data-science"]
+  }],
+  "page": 1, "limit": 12, "total": 1, "total_pages": 1
+}
+The sample mentor is synthetic. It illustrates a response schema and is not a claim about a real user on Connect Mentor.
+Contact form — sample contract
+POST /api/v1/contact
+Content-Type: application/json
+{"full_name":"Example Person","email":"person@example.com",
+ "message":"I would like to know about mentorship."}
+201 Created
+{"id":"enquiry_204","status":"received",
+ "message":"Thank you. We have received your enquiry."}
+422 Validation Error  |  429 Rate Limited  |  500 Server Error
+Core domain entities
+Entity
+Essential fields
+Primary relations
+User
+id, name, email, role, password_hash/auth_id, status, created_at
+Has profile, messages, bookings
+MentorProfile
+user_id, slug, avatar, headline, bio, country, years, verified, attendance_pct
+Many categories, languages, sessions
+Category
+id, slug, name, icon, sort_order
+Many mentors
+Session
+id, mentor_id, title, topic, format, recurrence, max_occurrences, duration_min
+Mentor owns sessions
+Booking
+id, user_id, session_id, starts_at, status
+User books session
+BlogPost
+id, slug, title, summary, cover_url, locale, body, published_at
+Published by user/admin
+FAQ
+id, question, answer, position, is_public
+Standalone
+Job
+id, title, company, location, description, created_at, visibility
+Private/auth visibility
+ContactMessage
+id, name, email, message, status, received_at
+Admin queue
+Backend correctness / privacy / security
+Jobs endpoint must return 401/403 to unauthorized requests; front-end red gate is purely presentation.
+Validate all filter parameters and contact fields on server. Parameterized queries prevent SQL injection.
+Throttle login/contact routes, include spam protection and CSRF defenses if using cookie sessions.
+Store password hashes with modern memory-hard hash, never plaintext; rotate session credentials and log sign-in security events.
+Mentor profile images and blog images should be optimized and stored as asset URLs, not embedded base64 blobs in directory API.
+Never copy personal data, identifiable profiles or copyrighted brand assets from the source site without appropriate authorization.
+Show truthful availability and session status; never promise booking success until server confirms.
+Example frontend module layout
+src/
+  app/(public)/page.tsx
+  app/mentors/page.tsx                 # directory
+  app/mentors/[slug]/page.tsx         # optional detail
+  app/sessions/page.tsx
+  app/blogs/page.tsx
+  app/jobs/page.tsx
+  app/faqs/page.tsx
+  app/contact/page.tsx
+  components/layout/{SiteHeader,SiteFooter}.tsx
+  components/mentors/{MentorCard,MentorFilters}.tsx
+  components/home/{HeroSearch,CategoryGrid,WorkflowCards}.tsx
+  components/shared/{Button,Input,Select,Accordion}.tsx
+  lib/api/{client,mentors,sessions,posts,auth}.ts
+  styles/tokens.css
+backend/app/{main.py,models.py,schemas.py,api/,services/}
+06 · Responsive, accessibility &amp; performance
+Recommended breakpoints — not recorded
+Viewport
+Grid / header
+Form and table rules
+≥ 1200px
+Max container ~1180px, 4 mentor cards, 4 category cards
+Horizontal search, 3 blog cards
+768–1199px
+2–3 mentor/category cards; nav may collapse below ~1024px
+Stack hero filters as needed
+480–767px
+2 category cards, 1–2 mentor cards, hamburger header
+Single-column contact fields
+&lt; 480px
+1-column mentor cards or 2 compact cards if readable
+Sessions table scrolls horizontally
+A11y and interaction quality checklist
+Set one H1 per page, use semantic landmarks (header, nav, main, footer) and actual buttons/links.
+Provide text labels for all form inputs; avoid placeholder-only labeling.
+FAQ uses aria-expanded/aria-controls and Enter/Space; menu must operate without hover.
+Preserve visible focus ring. Aim for WCAG AA contrast for body text and interactive controls.
+Mentor images get useful alt text or neutral empty alt for decorative images; logo has a text alternative.
+Respect prefers-reduced-motion; use skeleton loading with stable heights to prevent layout shift.
+Support logical tab order, error text, and aria-live submission feedback.
+Performance guidelines
+Compress and resize mentor images, include width/height, lazy-load below-the-fold cards.
+Use query caching and pagination for directory; avoid downloading every mentor on initial load.
+Prerender static pages (FAQs, marketing, legal) where practical, and cache public listing APIs.
+Keep external chat/accessibility widgets opt-in until script ownership and performance are confirmed.
+Measure Core Web Vitals in a real browser; target fast LCP and minimal layout shift on Home and Mentors.
+Recommended build sequence
+Build tokens, font, header, footer and active-route navigation. Validate Home hero proportions first.
+Create static responsive page shells: Home, Mentors, Sessions, Blogs, Jobs, FAQs, Contact.
+Implement backend models + seed content + public read endpoints.
+Connect mentor search, category links, sessions and blog search to real API responses.
+Implement FAQ accordion and contact submission with validation.
+Add authentication, Jobs authorization, then deeper mentor/booking flows.
+Perform screenshot regression at the same desktop viewport as the supplied recording.
+07 · Verification plan and open questions
+Check
+Acceptance criterion
+Priority
+Brand fidelity
+Logo, green hue, Poppins-like typography and whitespace match reference
+P0
+Global routing
+All seven recorded paths load directly and nav highlights appropriately
+P0
+Home sections
+Sequence, category 4-col grid, workflow cards, feature cards, mentor strip
+P0
+Mentor directory
+Filter form, 4-col desktop cards, verified badge, graceful images
+P0
+Sessions
+Column names, rows and green linked titles match table
+P0
+Blogs
+Search bar, 3-card layout, date/headline/read-more structure
+P0
+Jobs gate
+Unauthenticated user sees red login instruction; API protected
+P0
+FAQs
+Three accordions open/close with keyboard support
+P1
+Contact
+Field labels, layout, validation and successful POST
+P0
+Mobile
+Nav, cards, filters and form are usable and readable
+P1
+Hidden pages
+Auth/legal/profile/job post flows confirmed with stakeholders
+P1
+Items to verify before claiming an exact 1:1 clone
+Computed font families/weights and exact CSS variables from browser DevTools.
+Exact measurements at CSS viewport width: container, header height, section padding and card gap.
+What “Mentee / Mentor” hero tabs change and what the “All” mentors dropdown filters.
+Mentor filtering request parameters and whether results update on selection or only on Search.
+FAQ multi-open versus single-open behavior and exact answers on expansion.
+Contact API validation rules and success / failure toast copy.
+Authentication routes, registration choices, logged-in Jobs and mentor booking screens.
+Whether right-side floating widgets are first-party or injected by extensions.
+Mobile/tablet layout and actual page-by-page scroll animations.
+Reference &amp; provenance
+Primary source: user-provided “Screen Recording 2026-10-24 at 12.50.13 AM.mov”, duration 51.44 seconds. All included screenshots were captured from this recording. Site text/section names were cross-checked with the public Connect Mentor pages available on 24 October 2026:
+https://www.connectmentor.in/mentorship/
+https://connectmentor.in/mentorship/mentors
+https://connectmentor.in/mentorship/faqs
+https://connectmentor.in/mentorship/mentor/hemant-kumar
+Only the desktop video itself substantiates the filmed state. Public page text may differ over time. Colors, component dimensions, animations, stack and API endpoints are approximation/proposed implementation unless labeled OBSERVED.
+Deliverable definition  This is sufficient to begin a faithful desktop reproduction of the shown seven pages. A pixel-perfect, fully functional clone of unvisited authenticated and detail screens still requires additional capture or product-owner decisions.
